@@ -9,18 +9,21 @@ import (
 	"strconv"
 )
 
+// Struct to hold th shell command info
 type CmdInfo struct {
 	command string
 	commandNumber int
 	timestamp int
 }
 
+// The worlds most generic error handler ... but it gets the job done.
 func check(e error) {
 	if e != nil {
 		panic(e)
 	}
 }
 
+// This just returns the whole contents of a file as a string array
 func readLines(path string) ([]string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -36,6 +39,7 @@ func readLines(path string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
+// Checks if line is a comment. This should be the timestamp of one or more commands
 func isComment(line string) bool {
 	if string(line[0]) == "#" {
 		return true
@@ -45,6 +49,7 @@ func isComment(line string) bool {
 
 func buildCmdHistory(history []string) []CmdInfo {
 	var cmdInfo []CmdInfo
+	// Initialize the timestamp var so we can reset it as we find it in the array
 	currentTimestamp := 0
 	for i := 0; i < len(history); i++  {
 		line := history[i]
@@ -73,6 +78,7 @@ func main() {
 	cmdHistory := buildCmdHistory(lines)
 	cmdHistoryLength := len(cmdHistory)
 
+	// Print the last 10 commands
 	for i := cmdHistoryLength - 10; i < cmdHistoryLength; i++ {
 		fmt.Println(cmdHistory[i])
 	}
