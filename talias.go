@@ -58,10 +58,9 @@ func buildCmdHistory(history []string) []CmdInfo {
 			check(err)
 			currentTimestamp = timeStamp
 		} else {
-			var lineCmd CmdInfo
-			lineCmd.command = line
-			lineCmd.commandNumber = len(cmdInfo) + 1
-			lineCmd.timestamp = currentTimestamp
+			lineCmd := CmdInfo{	line,
+								len(cmdInfo) + 1,
+								currentTimestamp}
 			cmdInfo = append(cmdInfo, lineCmd)
 		}
 	}
