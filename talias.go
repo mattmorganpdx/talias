@@ -6,6 +6,7 @@ import (
 	/*"io"
 	"io/ioutil"*/
 	"os"
+	"strconv"
 )
 
 type CmdInfo struct {
@@ -44,7 +45,21 @@ func isComment(line string) bool {
 
 func buildCmdHistory(history []string) []CmdInfo {
 	var cmdInfo []CmdInfo
-	//for i, line := range history
+	currentTimestamp := 0
+	for i := 0; i < len(history); i++  {
+		line := history[i]
+		if isComment(line) {
+			timeStamp, err := strconv.Atoi(line[1:])
+			check(err)
+			currentTimestamp = timeStamp
+		} else {
+			var lineCmd CmdInfo
+			lineCmd.command = line
+			lineCmd.commandNumber = len(cmdInfo) + 1
+			lineCmd.timestamp = currentTimestamp
+			cmdInfo = append(cmdInfo, lineCmd)
+		}
+	}
 
 	return cmdInfo
 }
@@ -55,11 +70,10 @@ func main() {
 	lines, err := readLines(histFile)
 	check(err)
 
-	histLength := len(lines)
+	cmdHistory := buildCmdHistory(lines)
+	cmdHistoryLength := len(cmdHistory)
 
-	for i := (histLength - 10); i < histLength ; i += 1 {
-		if isComment(lines[i]) {
-			fmt.Println(i, lines[i])
-		}
+	for i := cmdHistoryLength - 10; i < cmdHistoryLength; i++ {
+		fmt.Println(cmdHistory[i])
 	}
 }
