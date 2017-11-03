@@ -7,6 +7,7 @@ import (
 	"io/ioutil"*/
 	"os"
 	"strconv"
+	"flag"
 )
 
 // Struct to hold th shell command info
@@ -71,6 +72,9 @@ func buildCmdHistory(history []string) []CmdInfo {
 func main() {
 	histFile := "/home/mmorgan/.bash_history"
 
+	numbPtr := flag.Bool("l", false, "list history")
+	//flag.Parse()
+
 	lines, err := readLines(histFile)
 	check(err)
 
@@ -78,7 +82,9 @@ func main() {
 	cmdHistoryLength := len(cmdHistory)
 
 	// Print the last 10 commands
-	for i := cmdHistoryLength - 10; i < cmdHistoryLength; i++ {
-		fmt.Println(cmdHistory[i])
+	if *numbPtr {
+		for i := cmdHistoryLength - 10; i < cmdHistoryLength; i++ {
+			fmt.Println(cmdHistory[i].command)
+		}
 	}
 }
