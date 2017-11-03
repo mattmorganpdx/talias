@@ -17,6 +17,14 @@ type CmdInfo struct {
 	timestamp int
 }
 
+type TaliasCmd struct {
+	id int
+	command string
+	alias string
+	initializationDate int
+	expirationDate int
+}
+
 // The worlds most generic error handler ... but it gets the job done.
 func check(e error) {
 	if e != nil {
@@ -59,7 +67,7 @@ func buildCmdHistory(history []string) []CmdInfo {
 			check(err)
 			currentTimestamp = timeStamp
 		} else {
-			lineCmd := CmdInfo{	line,
+			lineCmd := CmdInfo{ line,
 								len(cmdInfo) + 1,
 								currentTimestamp}
 			cmdInfo = append(cmdInfo, lineCmd)
@@ -69,11 +77,26 @@ func buildCmdHistory(history []string) []CmdInfo {
 	return cmdInfo
 }
 
+func loadDataFile(filename string) []TaliasCmd {
+	var taliasCmd []TaliasCmd
+	placeHolderCmd := TaliasCmd{0,
+								"ls -ltr",
+								"lsltr",
+								0,
+								1}
+	taliasCmd = append(taliasCmd, placeHolderCmd)
+	return taliasCmd
+}
+
+func writeDataFile(filename string, command []TaliasCmd) bool {
+	return true
+}
+
 func main() {
 	histFile := "/home/mmorgan/.bash_history"
 
 	numbPtr := flag.Bool("l", false, "list history")
-	//flag.Parse()
+	flag.Parse()
 
 	lines, err := readLines(histFile)
 	check(err)
@@ -86,5 +109,11 @@ func main() {
 		for i := cmdHistoryLength - 10; i < cmdHistoryLength; i++ {
 			fmt.Println(cmdHistory[i].command)
 		}
+	}
+
+	taliasData := loadDataFile("/tmp/.talias")
+
+	for _, talias := range taliasData {
+		println(talias.command)
 	}
 }
