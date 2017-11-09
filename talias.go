@@ -8,13 +8,14 @@ import (
 	"os"
 	"strconv"
 	"flag"
+	"time"
 )
 
 // Struct to hold th shell command info
 type CmdInfo struct {
 	command string
 	commandNumber int
-	timestamp int
+	timestamp int64
 }
 
 type TaliasCmd struct {
@@ -49,10 +50,10 @@ func readLines(path string) ([]string, error) {
 }
 
 // Checks if line is a comment. This should be the timestamp of one or more commands
-func isComment(line string) int {
+func isComment(line string) int64 {
 	if len(line) != 0 {
 		if string(line[0]) == "#" {
-			timeStamp, err := strconv.Atoi(line[1:])
+			timeStamp, err := strconv.ParseInt(line[1:], 10, 64)
 			if err == nil {
 				return timeStamp
 			}
@@ -64,7 +65,8 @@ func isComment(line string) int {
 func buildCmdHistory(history []string) []CmdInfo {
 	var cmdInfo []CmdInfo
 	// Initialize the timestamp var so we can reset it as we find it in the array
-	currentTimestamp := 0
+	var currentTimestamp int64
+	currentTimestamp = 0
 	for i := 0; i < len(history); i++  {
 		line := history[i]
 		commentCheck := isComment(line)
@@ -111,7 +113,7 @@ func main() {
 	// Print the last 10 commands
 	if *numbPtr {
 		for i := cmdHistoryLength - 10; i < cmdHistoryLength; i++ {
-			fmt.Println(cmdHistory[i].commandNumber,cmdHistory[i].timestamp, cmdHistory[i].command)
+			fmt.Println(cmdHistory[i].commandNumber, time.Unix(cmdHistory[i].timestamp, 0), cmdHistory[i].command)
 		}
 	}
 
