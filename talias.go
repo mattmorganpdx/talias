@@ -49,11 +49,16 @@ func readLines(path string) ([]string, error) {
 }
 
 // Checks if line is a comment. This should be the timestamp of one or more commands
-func isComment(line string) bool {
-	if string(line[0]) == "#" {
-		return true
+func isComment(line string) int {
+	if len(line) != 0 {
+		if string(line[0]) == "#" {
+			timeStamp, err := strconv.Atoi(line[1:])
+			if err == nil {
+				return timeStamp
+			}
+		}
 	}
-	return false
+	return -1
 }
 
 func buildCmdHistory(history []string) []CmdInfo {
@@ -62,10 +67,9 @@ func buildCmdHistory(history []string) []CmdInfo {
 	currentTimestamp := 0
 	for i := 0; i < len(history); i++  {
 		line := history[i]
-		if isComment(line) {
-			timeStamp, err := strconv.Atoi(line[1:])
-			check(err)
-			currentTimestamp = timeStamp
+		commentCheck := isComment(line)
+		if commentCheck >= 0  {
+			currentTimestamp = commentCheck
 		} else {
 			lineCmd := CmdInfo{ line,
 								len(cmdInfo) + 1,
@@ -107,7 +111,7 @@ func main() {
 	// Print the last 10 commands
 	if *numbPtr {
 		for i := cmdHistoryLength - 10; i < cmdHistoryLength; i++ {
-			fmt.Println(cmdHistory[i].command)
+			fmt.Println(cmdHistory[i].commandNumber,cmdHistory[i].timestamp, cmdHistory[i].command)
 		}
 	}
 
