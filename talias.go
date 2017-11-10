@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var TALIAS_DIR = "/home/mmorgan/.talias/"
+
 // Struct to hold th shell command info
 type CmdInfo struct {
 	command string
@@ -50,7 +52,7 @@ func readLines(path string) ([]string, error) {
 }
 
 // Checks if line is a comment. This should be the timestamp of one or more commands
-func isComment(line string) int64 {
+func isTimeStamp(line string) int64 {
 	if len(line) != 0 {
 		if string(line[0]) == "#" {
 			timeStamp, err := strconv.ParseInt(line[1:], 10, 64)
@@ -69,7 +71,7 @@ func buildCmdHistory(history []string) []CmdInfo {
 	currentTimestamp = 0
 	for i := 0; i < len(history); i++  {
 		line := history[i]
-		commentCheck := isComment(line)
+		commentCheck := isTimeStamp(line)
 		if commentCheck >= 0  {
 			currentTimestamp = commentCheck
 		} else {
@@ -81,6 +83,14 @@ func buildCmdHistory(history []string) []CmdInfo {
 	}
 
 	return cmdInfo
+}
+
+func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
+	cmdMap := make(map[int]CmdInfo)
+	for i, cmd := range cmdInfo {
+		cmdMap[i + 1] = cmd
+	}
+	return cmdMap
 }
 
 func loadDataFile(filename string) []TaliasCmd {
@@ -98,6 +108,20 @@ func writeDataFile(filename string, command []TaliasCmd) bool {
 	return true
 }
 
+func readInput() int {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter command number: ")
+	text, _ := reader.ReadString('\n')
+	cmdNum, err := strconv.Atoi(text[:len(text) - 1])
+	check(err)
+	return cmdNum
+}
+
+func addAlias(info CmdInfo) bool {
+	fmt.Println(TALIAS_DIR)
+	return true
+}
+
 func main() {
 	histFile := "/home/mmorgan/.bash_history"
 
@@ -109,6 +133,7 @@ func main() {
 
 	cmdHistory := buildCmdHistory(lines)
 	cmdHistoryLength := len(cmdHistory)
+	cmdHistoryMap := buildCmdHistoryMap(cmdHistory)
 
 	// Print the last 10 commands
 	if *numbPtr {
@@ -122,4 +147,8 @@ func main() {
 	for _, talias := range taliasData {
 		println(talias.command)
 	}
+
+	cmdNum := readInput()
+	fmt.Println(cmdHistoryMap[cmdNum].command)
+	addAlias(cmdHistoryMap[cmdNum])
 }
