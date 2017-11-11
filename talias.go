@@ -117,8 +117,21 @@ func readInput() int {
 	return cmdNum
 }
 
-func addAlias(info CmdInfo) bool {
-	fmt.Println(TALIAS_DIR)
+func addAlias(info CmdInfo, alias string) bool {
+	aliasFile := TALIAS_DIR + "/" + alias
+	f, err := os.Create(aliasFile)
+	check(err)
+
+	defer f.Close()
+
+	f.WriteString("#!/bin/bash\n")
+	f.WriteString("set -e\n")
+	f.WriteString(info.command + "\n")
+
+	f.Sync()
+
+	os.Chmod(aliasFile, 0755)
+
 	return true
 }
 
@@ -150,5 +163,5 @@ func main() {
 
 	cmdNum := readInput()
 	fmt.Println(cmdHistoryMap[cmdNum].command)
-	addAlias(cmdHistoryMap[cmdNum])
+	addAlias(cmdHistoryMap[cmdNum], "tea")
 }
