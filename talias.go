@@ -3,8 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	/*"io"
-	"io/ioutil"*/
 	"os"
 	"strconv"
 	"flag"
@@ -35,6 +33,7 @@ type TaliasContext struct {
 	addAliasName string
 	listAliases bool
 	purgeExpiredAliases bool
+	histFile string
 }
 
 func initTaliasContext() TaliasContext{
@@ -44,7 +43,17 @@ func initTaliasContext() TaliasContext{
 								false,
 								"",
 								false,
-								false}
+								false,
+								"/home/mmorgan/.bash_history"}
+
+	flag.BoolVar(&context.listHistory,"l", false, "list history")
+	flag.StringVar(&context.addAliasName, "a", "REQUIRED", "add alias <name>")
+	flag.Parse()
+
+	if context.addAliasName != "REQUIRED" {
+		context.addAlias = true
+	}
+
 	return context
 }
 
@@ -162,14 +171,10 @@ func listHistory(cmdHistoryLength int, cmdHistory []CmdInfo, cmdCount int) {
 }
 
 func main() {
-	histFile := "/home/mmorgan/.bash_history"
 
-	listFlagPtr := flag.Bool("l", false, "list history")
-	var addAliasName string
-	flag.StringVar(&addAliasName, "a", "none", "add alias named <value>")
-	flag.Parse()
+	ctx := initTaliasContext()
 
-	lines, err := readLines(histFile)
+	lines, err := readLines(ctx.histFile)
 	check(err)
 
 	cmdHistory := buildCmdHistory(lines)
@@ -177,8 +182,8 @@ func main() {
 	cmdHistoryMap := buildCmdHistoryMap(cmdHistory)
 
 	// Print the last 10 commands
-	if *listFlagPtr {
-		listHistory(cmdHistoryLength, cmdHistory, 10)
+	if ctx.listHistory {
+		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
 	}
 
 	taliasData := loadDataFile("/tmp/.talias")
@@ -187,7 +192,10 @@ func main() {
 		println(talias.command)
 	}
 
-	cmdNum := readInput()
-	fmt.Println(cmdHistoryMap[cmdNum].command)
-	addAlias(cmdHistoryMap[cmdNum], "tea")
+	if ctx.addAlias {
+		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
+		cmdNum := readInput()
+		fmt.Println(cmdHistoryMap[cmdNum].command)
+		addAlias(cmdHistoryMap[cmdNum], ctx.addAliasName)
+	}
 }
