@@ -28,6 +28,26 @@ type TaliasCmd struct {
 	expirationDate int
 }
 
+type TaliasContext struct {
+	listHistory bool
+	listHistoryNumber int
+	addAlias bool
+	addAliasName string
+	listAliases bool
+	purgeExpiredAliases bool
+}
+
+func initTaliasContext() TaliasContext{
+	context := TaliasContext {
+								true,
+								10,
+								false,
+								"",
+								false,
+								false}
+	return context
+}
+
 // The worlds most generic error handler ... but it gets the job done.
 func check(e error) {
 	if e != nil {
@@ -135,10 +155,18 @@ func addAlias(info CmdInfo, alias string) bool {
 	return true
 }
 
+func listHistory(cmdHistoryLength int, cmdHistory []CmdInfo, cmdCount int) {
+	for i := cmdHistoryLength - cmdCount; i < cmdHistoryLength; i++ {
+		fmt.Println(cmdHistory[i].commandNumber, time.Unix(cmdHistory[i].timestamp, 0), cmdHistory[i].command)
+	}
+}
+
 func main() {
 	histFile := "/home/mmorgan/.bash_history"
 
-	numbPtr := flag.Bool("l", false, "list history")
+	listFlagPtr := flag.Bool("l", false, "list history")
+	var addAliasName string
+	flag.StringVar(&addAliasName, "a", "none", "add alias named <value>")
 	flag.Parse()
 
 	lines, err := readLines(histFile)
@@ -149,10 +177,8 @@ func main() {
 	cmdHistoryMap := buildCmdHistoryMap(cmdHistory)
 
 	// Print the last 10 commands
-	if *numbPtr {
-		for i := cmdHistoryLength - 10; i < cmdHistoryLength; i++ {
-			fmt.Println(cmdHistory[i].commandNumber, time.Unix(cmdHistory[i].timestamp, 0), cmdHistory[i].command)
-		}
+	if *listFlagPtr {
+		listHistory(cmdHistoryLength, cmdHistory, 10)
 	}
 
 	taliasData := loadDataFile("/tmp/.talias")
