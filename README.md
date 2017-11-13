@@ -1,0 +1,2 @@
+# talias
+easier linux aliases
