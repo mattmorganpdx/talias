@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"flag"
 	"time"
+	"path/filepath"
 )
 
-var TALIAS_DIR = "/home/mmorgan/.talias/"
+var ctx TaliasContext
 
 // Struct to hold th shell command info
 type CmdInfo struct {
@@ -34,27 +35,34 @@ type TaliasContext struct {
 	listAliases bool
 	purgeExpiredAliases bool
 	histFile string
+	taliasHome string
+	aliasDir string
+	dataFile string
 }
 
 func initTaliasContext() TaliasContext{
-	context := TaliasContext {
+	userHome := os.Getenv("HOME")
+	appContext := TaliasContext {
 								true,
 								10,
 								false,
 								"",
 								false,
 								false,
-								"/home/mmorgan/.bash_history"}
+								filepath.Join(userHome, ".bash_history"),
+								filepath.Join(userHome, ".talias"),
+								filepath.Join(userHome, ".talias", "bin"),
+								filepath.Join(userHome, ".talias", "alias.db")}
 
-	flag.BoolVar(&context.listHistory,"l", false, "list history")
-	flag.StringVar(&context.addAliasName, "a", "REQUIRED", "add alias <name>")
+	flag.BoolVar(&appContext.listHistory,"l", false, "list history")
+	flag.StringVar(&appContext.addAliasName, "a", "REQUIRED", "add alias <name>")
 	flag.Parse()
 
-	if context.addAliasName != "REQUIRED" {
-		context.addAlias = true
+	if appContext.addAliasName != "REQUIRED" {
+		appContext.addAlias = true
 	}
 
-	return context
+	return appContext
 }
 
 // The worlds most generic error handler ... but it gets the job done.
@@ -147,7 +155,7 @@ func readInput() int {
 }
 
 func addAlias(info CmdInfo, alias string) bool {
-	aliasFile := TALIAS_DIR + "/" + alias
+	aliasFile :=  filepath.Join(ctx.aliasDir, alias)
 	f, err := os.Create(aliasFile)
 	check(err)
 
@@ -155,7 +163,7 @@ func addAlias(info CmdInfo, alias string) bool {
 
 	f.WriteString("#!/bin/bash\n")
 	f.WriteString("set -e\n")
-	f.WriteString(info.command + "\n")
+	f.WriteString(info.command + " $*" + "\n")
 
 	f.Sync()
 
@@ -170,9 +178,18 @@ func listHistory(cmdHistoryLength int, cmdHistory []CmdInfo, cmdCount int) {
 	}
 }
 
+func mkDir(dir string) {
+	if _, err := os.Stat(dir); os.IsNotExist(err){
+		os.Mkdir(dir, 0755)
+	}
+}
+
 func main() {
 
-	ctx := initTaliasContext()
+	ctx = initTaliasContext()
+
+	mkDir(ctx.taliasHome)
+	mkDir(ctx.aliasDir)
 
 	lines, err := readLines(ctx.histFile)
 	check(err)
@@ -186,16 +203,18 @@ func main() {
 		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
 	}
 
-	taliasData := loadDataFile("/tmp/.talias")
+	taliasData := loadDataFile(ctx.dataFile)
 
 	for _, talias := range taliasData {
 		println(talias.command)
 	}
 
+	fmt.Println(ctx.histFile)
+
 	if ctx.addAlias {
 		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
 		cmdNum := readInput()
-		fmt.Println(cmdHistoryMap[cmdNum].command)
 		addAlias(cmdHistoryMap[cmdNum], ctx.addAliasName)
+		fmt.Println(cmdHistoryMap[cmdNum].command + " aliased as " + ctx.addAliasName)
 	}
 }
