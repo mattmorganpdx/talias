@@ -134,12 +134,6 @@ func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
 
 func loadDataFile() []TaliasCmd {
 	var taliasCmd []TaliasCmd
-	//placeHolderCmd := TaliasCmd{0,
-	//							"ls -ltr",
-	//							"lsltr",
-	//							time.Now(),
-	//							time.Now().Add(time.Duration(24)*time.Hour)}
-	//taliasCmd = append(taliasCmd, placeHolderCmd)
 	raw, err := ioutil.ReadFile(ctx.dataFile)
 	if ! os.IsNotExist(err) {
 		check(err)
@@ -222,7 +216,7 @@ func main() {
 	taliasData := loadDataFile()
 
 	for _, talias := range taliasData {
-		fmt.Println(talias)
+		fmt.Println(talias.Alias, talias.Command)
 		fmt.Println(talias.InitializationDate.After(talias.ExpirationDate))
 	}
 
