@@ -8,6 +8,8 @@ import (
 	"flag"
 	"time"
 	"path/filepath"
+	"encoding/json"
+	"io/ioutil"
 )
 
 var ctx TaliasContext
@@ -20,11 +22,11 @@ type CmdInfo struct {
 }
 
 type TaliasCmd struct {
-	id int
-	command string
-	alias string
-	initializationDate int
-	expirationDate int
+	id                 int
+	Command            string
+	Alias              string
+	InitializationDate time.Time
+	ExpirationDate     time.Time
 }
 
 type TaliasContext struct {
@@ -132,16 +134,34 @@ func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
 
 func loadDataFile(filename string) []TaliasCmd {
 	var taliasCmd []TaliasCmd
-	placeHolderCmd := TaliasCmd{0,
-								"ls -ltr",
-								"lsltr",
-								0,
-								1}
-	taliasCmd = append(taliasCmd, placeHolderCmd)
+	//placeHolderCmd := TaliasCmd{0,
+	//							"ls -ltr",
+	//							"lsltr",
+	//							time.Now(),
+	//							time.Now().Add(time.Duration(24)*time.Hour)}
+	//taliasCmd = append(taliasCmd, placeHolderCmd)
+	raw, err := ioutil.ReadFile(filename)
+	if ! os.IsNotExist(err) {
+		check(err)
+	}
+
+	err = json.Unmarshal(raw, &taliasCmd)
+	for i, _ := range taliasCmd {
+		taliasCmd[i].id = i + 1
+	}
 	return taliasCmd
 }
 
 func writeDataFile(filename string, command []TaliasCmd) bool {
+	/*fmt.Println(taliasData)
+	taliasJson, err := json.Marshal(taliasData)
+	check(err)
+	fmt.Println(taliasJson)
+	var unTd []TaliasCmd
+	err = json.Unmarshal(taliasJson, &unTd)
+	check(err)
+	fmt.Println(unTd)
+	err = ioutil.WriteFile("output.json", taliasJson, 0644)*/
 	return true
 }
 
@@ -206,10 +226,9 @@ func main() {
 	taliasData := loadDataFile(ctx.dataFile)
 
 	for _, talias := range taliasData {
-		println(talias.command)
+		fmt.Println(talias)
+		fmt.Println(talias.InitializationDate.After(talias.ExpirationDate))
 	}
-
-	fmt.Println(ctx.histFile)
 
 	if ctx.addAlias {
 		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
