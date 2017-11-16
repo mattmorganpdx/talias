@@ -12,15 +12,17 @@ import (
 	"io/ioutil"
 )
 
+// Global app context variable
 var ctx TaliasContext
 
-// Struct to hold th shell command info
+// Struct to hold the shell command info
 type CmdInfo struct {
 	command       string
 	commandNumber int
 	timestamp     int64
 }
 
+// Struct to hold talias metadata
 type TaliasCmd struct {
 	id                 int
 	Command            string
@@ -29,6 +31,7 @@ type TaliasCmd struct {
 	ExpirationDate     time.Time
 }
 
+// Struct to hold app context
 type TaliasContext struct {
 	listHistory         bool
 	listHistoryNumber   int
@@ -42,6 +45,7 @@ type TaliasContext struct {
 	dataFile            string
 }
 
+// Initialize app context
 func initTaliasContext() TaliasContext {
 	userHome := os.Getenv("HOME")
 	appContext := TaliasContext{
@@ -103,6 +107,7 @@ func isTimeStamp(line string) int64 {
 	return -1
 }
 
+// Build the array of all the available shell history
 func buildCmdHistory(history []string) []CmdInfo {
 	var cmdInfo []CmdInfo
 	// Initialize the timestamp var so we can reset it as we find it in the array
@@ -124,6 +129,7 @@ func buildCmdHistory(history []string) []CmdInfo {
 	return cmdInfo
 }
 
+// Build a map so that commands can be referenced by id number
 func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
 	cmdMap := make(map[int]CmdInfo)
 	for i, cmd := range cmdInfo {
@@ -132,6 +138,7 @@ func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
 	return cmdMap
 }
 
+// Load Json Metadata
 func loadDataFile() []TaliasCmd {
 	var taliasCmd []TaliasCmd
 	raw, err := ioutil.ReadFile(ctx.dataFile)
@@ -146,6 +153,7 @@ func loadDataFile() []TaliasCmd {
 	return taliasCmd
 }
 
+// Write Json Metadata
 func writeDataFile(taliasData []TaliasCmd) bool {
 
 	taliasJson, err := json.Marshal(taliasData)
@@ -155,6 +163,7 @@ func writeDataFile(taliasData []TaliasCmd) bool {
 	return true
 }
 
+// Read user input of command number to create alias
 func readInput() int {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter command number: ")
@@ -164,6 +173,7 @@ func readInput() int {
 	return cmdNum
 }
 
+// Add alias script
 func addAlias(info CmdInfo, alias string) bool {
 	aliasFile := filepath.Join(ctx.aliasDir, alias)
 	f, err := os.Create(aliasFile)
@@ -182,18 +192,21 @@ func addAlias(info CmdInfo, alias string) bool {
 	return true
 }
 
+// List last N shell commands from history
 func listHistory(cmdHistoryLength int, cmdHistory []CmdInfo, cmdCount int) {
 	for i := cmdHistoryLength - cmdCount; i < cmdHistoryLength; i++ {
 		fmt.Println(cmdHistory[i].commandNumber, time.Unix(cmdHistory[i].timestamp, 0), cmdHistory[i].command)
 	}
 }
 
+// Make a directory if it doesn't already exist
 func mkDir(dir string) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		os.Mkdir(dir, 0755)
 	}
 }
 
+// List Talias metadata
 func listTaliasData(taliasData *[]TaliasCmd) {
 	for _, talias := range *taliasData {
 		fmt.Println(" id: ", talias.id, "\n",
@@ -205,8 +218,10 @@ func listTaliasData(taliasData *[]TaliasCmd) {
 }
 
 func main() {
-
+	// Remember ctx is global
 	ctx = initTaliasContext()
+	
+	taliasData := loadDataFile()
 
 	mkDir(ctx.taliasHome)
 	mkDir(ctx.aliasDir)
@@ -222,8 +237,6 @@ func main() {
 	if ctx.listHistory {
 		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
 	}
-
-	taliasData := loadDataFile()
 
 	listTaliasData(&taliasData)
 
