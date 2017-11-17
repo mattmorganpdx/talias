@@ -5,7 +5,7 @@ easier linux aliases
 Download go run `go build talias.go`
 
 Add the talias bin dir to your path
-eg edit ~/.bashrc and add this at the end
+eg `vi ~/.bashrc` and add this at the end
     export PATH=~/.talias/bin:$PATH
 This will keep it set across shell sessions.
 Then resource the file to get started
