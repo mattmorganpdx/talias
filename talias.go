@@ -24,11 +24,11 @@ type CmdInfo struct {
 
 // Struct to hold talias metadata
 type TaliasCmd struct {
-	id                 int
 	Command            string
 	Alias              string
 	InitializationDate time.Time
 	ExpirationDate     time.Time
+	Active			   bool
 }
 
 // Struct to hold app context
@@ -43,6 +43,7 @@ type TaliasContext struct {
 	taliasHome          string
 	aliasDir            string
 	dataFile            string
+	listTaliasData		bool
 }
 
 // Initialize app context
@@ -58,9 +59,11 @@ func initTaliasContext() TaliasContext {
 		filepath.Join(userHome, ".bash_history"),
 		filepath.Join(userHome, ".talias"),
 		filepath.Join(userHome, ".talias", "bin"),
-		filepath.Join(userHome, ".talias", "alias.db")}
+		filepath.Join(userHome, ".talias", "alias.db"),
+		false}
 
 	flag.BoolVar(&appContext.listHistory, "l", false, "list history")
+	flag.BoolVar(&appContext.listTaliasData, "L", false, "list aliases")
 	flag.StringVar(&appContext.addAliasName, "a", "REQUIRED", "add alias <name>")
 	flag.Parse()
 
@@ -139,23 +142,19 @@ func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
 }
 
 // Load Json Metadata
-func loadDataFile() []TaliasCmd {
-	var taliasCmd []TaliasCmd
+func loadDataFile() map[string]TaliasCmd {
+	taliasCmdMap := make(map[string]TaliasCmd)
 	raw, err := ioutil.ReadFile(ctx.dataFile)
 	if ! os.IsNotExist(err) {
 		check(err)
 	}
 
-	err = json.Unmarshal(raw, &taliasCmd)
-	for i, _ := range taliasCmd {
-		taliasCmd[i].id = i + 1
-	}
-	return taliasCmd
+	err = json.Unmarshal(raw, &taliasCmdMap)
+	return taliasCmdMap
 }
 
 // Write Json Metadata
-func writeDataFile(taliasData []TaliasCmd) bool {
-
+func writeDataFile(taliasData map[string]TaliasCmd) bool {
 	taliasJson, err := json.Marshal(taliasData)
 	check(err)
 	err = ioutil.WriteFile(ctx.dataFile, taliasJson, 0644)
@@ -207,12 +206,13 @@ func mkDir(dir string) {
 }
 
 // List Talias metadata
-func listTaliasData(taliasData *[]TaliasCmd) {
+func listTaliasData(taliasData *map[string]TaliasCmd) {
+	fmt.Println("Registered Commands =======================================")
 	for _, talias := range *taliasData {
-		fmt.Println(" id: ", talias.id, "\n",
-			"alias:", talias.Alias, "\n",
+		fmt.Println("alias:", talias.Alias, "\n",
 			"command: ", talias.Command, "\n",
 			"expired: ", talias.InitializationDate.After(talias.ExpirationDate), "\n",
+			"active: ", talias.Active, "\n",
 			"==========================================================")
 	}
 }
@@ -220,7 +220,7 @@ func listTaliasData(taliasData *[]TaliasCmd) {
 func main() {
 	// Remember ctx is global
 	ctx = initTaliasContext()
-	
+
 	taliasData := loadDataFile()
 
 	mkDir(ctx.taliasHome)
@@ -233,23 +233,25 @@ func main() {
 	cmdHistoryLength := len(cmdHistory)
 	cmdHistoryMap := buildCmdHistoryMap(cmdHistory)
 
-	// Print the last 10 commands
+	// Print the last N commands
 	if ctx.listHistory {
 		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
 	}
 
-	listTaliasData(&taliasData)
+	if ctx.listTaliasData {
+		listTaliasData(&taliasData)
+	}
 
 	if ctx.addAlias {
 		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
 		cmdNum := readInput()
 		addAlias(cmdHistoryMap[cmdNum], ctx.addAliasName)
-		newAlias := TaliasCmd{len(taliasData) + 1,
-			cmdHistoryMap[cmdNum].command,
+		newAlias := TaliasCmd{cmdHistoryMap[cmdNum].command,
 			ctx.addAliasName,
 			time.Now(),
-			time.Now().Add(time.Hour * 72)}
-		taliasData = append(taliasData, newAlias)
+			time.Now().Add(time.Hour * 72),
+			true}
+		taliasData[ctx.addAliasName] = newAlias
 		writeDataFile(taliasData)
 		fmt.Println(cmdHistoryMap[cmdNum].command + " aliased as " + ctx.addAliasName)
 	}
