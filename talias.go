@@ -57,6 +57,8 @@ type TaliasContext struct {
 	listTaliasData      bool
 	Expiration          time.Duration
 	configFile			string
+	delAlias			bool
+	delAliasName		string
 }
 
 // Initialize app context
@@ -75,15 +77,22 @@ func initTaliasContext() TaliasContext {
 		filepath.Join(userHome, ".talias", "talias.db"),
 		false,
 		72,
-		filepath.Join(userHome, ".talias", "talias.conf")}
+		filepath.Join(userHome, ".talias", "talias.conf"),
+		false,
+		""}
 
 	flag.BoolVar(&appContext.listHistory, "l", false, "list history")
 	flag.BoolVar(&appContext.listTaliasData, "L", false, "list aliases")
 	flag.StringVar(&appContext.addAliasName, "a", "REQUIRED", "add alias <name>")
+	flag.StringVar(&appContext.delAliasName, "d", "REQUIRED", "delete alias <name>")
 	flag.Parse()
 
 	if appContext.addAliasName != "REQUIRED" {
 		appContext.addAlias = true
+	}
+
+	if appContext.delAliasName != "REQUIRED" {
+		appContext.delAlias = true
 	}
 
 	return appContext
@@ -223,6 +232,11 @@ func addAlias(info CmdInfo, alias string) bool {
 	return true
 }
 
+func deactivateAlias(alias string) {
+	err := os.Remove(filepath.Join(ctx.AliasDir, alias))
+	check(err)
+}
+
 // List last N shell commands from history
 func listHistory(cmdHistoryLength int, cmdHistory []CmdInfo, cmdCount int) {
 	for i := cmdHistoryLength - cmdCount; i < cmdHistoryLength; i++ {
@@ -286,6 +300,13 @@ func main() {
 		taliasData[ctx.addAliasName] = newAlias
 		writeDataFile(&taliasData)
 		fmt.Println(cmdHistoryMap[cmdNum].command + " aliased as " + ctx.addAliasName)
+	}
+
+	if ctx.delAlias {
+		if isAliasActive(ctx.delAliasName) {
+			deactivateAlias(ctx.delAliasName)
+		}
+		delete(taliasData, ctx.delAliasName)
 	}
 
 	writeDataFile(&taliasData)
