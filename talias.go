@@ -32,6 +32,8 @@ type TaliasCmd struct {
 	Active			   bool
 }
 
+type ShellCmdMap map[int]CmdInfo
+
 type TaliasCmdMap map[string]TaliasCmd
 
 func (t TaliasCmdMap) updateAllStatus() TaliasCmdMap {
@@ -107,11 +109,10 @@ func check(e error) {
 }
 
 // This just returns the whole contents of a file as a string array
-func readLines(path string) ([]string, error) {
+func readLines(path string) []string {
 	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
+	check(err)
+
 	defer file.Close()
 
 	var lines []string
@@ -119,7 +120,9 @@ func readLines(path string) ([]string, error) {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	return lines, scanner.Err()
+
+	check(scanner.Err())
+	return lines
 }
 
 // Checks if line is a comment. This should be the timestamp of one or more commands
@@ -173,6 +176,24 @@ func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
 		cmdMap[i+1] = cmd
 	}
 	return cmdMap
+}
+
+func loadHistoryDataMap() ShellCmdMap {
+	shellCmdMap := make(ShellCmdMap)
+	historyLines := readLines(ctx.HistFile)
+	currentTimeStamp := int64(0)
+	for _, line := range historyLines {
+		commentCheck := isTimeStamp(line)
+		if commentCheck >= 0 {
+			currentTimeStamp = commentCheck
+		} else {
+			mapIndex := len(shellCmdMap) + 1
+			shellCmdMap[mapIndex] = CmdInfo{line,
+				mapIndex,
+				currentTimeStamp}
+		}
+	}
+	return shellCmdMap
 }
 
 // Load Json Metadata
@@ -281,8 +302,7 @@ func main() {
 	mkDir(ctx.TaliasHome)
 	mkDir(ctx.AliasDir)
 
-	lines, err := readLines(ctx.HistFile)
-	check(err)
+	lines := readLines(ctx.HistFile)
 
 	cmdHistory := buildCmdHistory(lines)
 	cmdHistoryLength := len(cmdHistory)
@@ -316,6 +336,11 @@ func main() {
 			deactivateAlias(ctx.delAliasName)
 		}
 		delete(taliasData, ctx.delAliasName)
+	}
+
+	cmdMap := loadHistoryDataMap()
+	for i := len(cmdMap) - 10 ; i <= len(cmdMap) ; i++ {
+		fmt.Println(cmdMap[i].commandNumber, time.Unix(cmdMap[i].timestamp, 0), cmdMap[i].command)
 	}
 
 	writeDataFile(&taliasData)
