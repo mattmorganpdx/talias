@@ -45,16 +45,18 @@ func (t TaliasCmdMap) updateAllStatus() TaliasCmdMap {
 // Struct to hold app context
 type TaliasContext struct {
 	listHistory         bool
-	listHistoryNumber   int
+	ListHistoryNumber   int
 	addAlias            bool
 	addAliasName        string
 	listAliases         bool
 	purgeExpiredAliases bool
-	histFile            string
-	taliasHome          string
-	aliasDir            string
-	dataFile            string
-	listTaliasData		bool
+	HistFile            string
+	TaliasHome          string
+	AliasDir            string
+	DataFile            string
+	listTaliasData      bool
+	Expiration          time.Duration
+	configFile			string
 }
 
 // Initialize app context
@@ -70,8 +72,10 @@ func initTaliasContext() TaliasContext {
 		filepath.Join(userHome, ".bash_history"),
 		filepath.Join(userHome, ".talias"),
 		filepath.Join(userHome, ".talias", "bin"),
-		filepath.Join(userHome, ".talias", "alias.db"),
-		false}
+		filepath.Join(userHome, ".talias", "talias.db"),
+		false,
+		72,
+		filepath.Join(userHome, ".talias", "talias.conf")}
 
 	flag.BoolVar(&appContext.listHistory, "l", false, "list history")
 	flag.BoolVar(&appContext.listTaliasData, "L", false, "list aliases")
@@ -123,7 +127,7 @@ func isTimeStamp(line string) int64 {
 
 // Check if an alias in the db currently has a script in place
 func isAliasActive(alias string) bool {
-	fullPath := filepath.Join(ctx.aliasDir, alias)
+	fullPath := filepath.Join(ctx.AliasDir, alias)
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return false
 	}
@@ -164,7 +168,7 @@ func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
 // Load Json Metadata
 func loadDataFile() TaliasCmdMap {
 	taliasCmdMap := make(TaliasCmdMap)
-	raw, err := ioutil.ReadFile(ctx.dataFile)
+	raw, err := ioutil.ReadFile(ctx.DataFile)
 	if ! os.IsNotExist(err) {
 		check(err)
 	}
@@ -177,7 +181,15 @@ func loadDataFile() TaliasCmdMap {
 func writeDataFile(taliasData *TaliasCmdMap) bool {
 	taliasJson, err := json.Marshal(taliasData)
 	check(err)
-	err = ioutil.WriteFile(ctx.dataFile, taliasJson, 0644)
+	err = ioutil.WriteFile(ctx.DataFile, taliasJson, 0644)
+	check(err)
+	return true
+}
+
+func writeConfFile(taliasConf *TaliasContext) bool {
+	taliasJson, err := json.Marshal(taliasConf)
+	check(err)
+	err = ioutil.WriteFile(ctx.configFile, taliasJson, 0644)
 	check(err)
 	return true
 }
@@ -194,7 +206,7 @@ func readInput() int {
 
 // Add alias script
 func addAlias(info CmdInfo, alias string) bool {
-	aliasFile := filepath.Join(ctx.aliasDir, alias)
+	aliasFile := filepath.Join(ctx.AliasDir, alias)
 	f, err := os.Create(aliasFile)
 	check(err)
 
@@ -226,9 +238,9 @@ func mkDir(dir string) {
 }
 
 // List Talias metadata
-func listTaliasData(taliasData *TaliasCmdMap) {
+func (taliasData TaliasCmdMap) listTaliasData() {
 	fmt.Println("Registered Commands =======================================")
-	for _, talias := range *taliasData {
+	for _, talias := range taliasData {
 		fmt.Println("alias:", talias.Alias, "\n",
 			"command: ", talias.Command, "\n",
 			"expired: ", talias.InitializationDate.After(talias.ExpirationDate), "\n",
@@ -243,10 +255,10 @@ func main() {
 
 	taliasData := loadDataFile().updateAllStatus()
 
-	mkDir(ctx.taliasHome)
-	mkDir(ctx.aliasDir)
+	mkDir(ctx.TaliasHome)
+	mkDir(ctx.AliasDir)
 
-	lines, err := readLines(ctx.histFile)
+	lines, err := readLines(ctx.HistFile)
 	check(err)
 
 	cmdHistory := buildCmdHistory(lines)
@@ -255,21 +267,21 @@ func main() {
 
 	// Print the last N commands
 	if ctx.listHistory {
-		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
+		listHistory(cmdHistoryLength, cmdHistory, ctx.ListHistoryNumber)
 	}
 
 	if ctx.listTaliasData {
-		listTaliasData(&taliasData)
+		taliasData.listTaliasData()
 	}
 
 	if ctx.addAlias {
-		listHistory(cmdHistoryLength, cmdHistory, ctx.listHistoryNumber)
+		listHistory(cmdHistoryLength, cmdHistory, ctx.ListHistoryNumber)
 		cmdNum := readInput()
 		addAlias(cmdHistoryMap[cmdNum], ctx.addAliasName)
 		newAlias := TaliasCmd{cmdHistoryMap[cmdNum].command,
 			ctx.addAliasName,
 			time.Now(),
-			time.Now().Add(time.Hour * 72),
+			time.Now().Add(time.Hour * ctx.Expiration),
 			true}
 		taliasData[ctx.addAliasName] = newAlias
 		writeDataFile(&taliasData)
@@ -277,4 +289,5 @@ func main() {
 	}
 
 	writeDataFile(&taliasData)
+	writeConfFile(&ctx)
 }
