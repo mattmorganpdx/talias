@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"encoding/json"
 	"io/ioutil"
+	"sort"
 )
 
 // Global app context variable
@@ -253,8 +254,16 @@ func mkDir(dir string) {
 
 // List Talias metadata
 func (taliasData TaliasCmdMap) listTaliasData() {
+	// We want the print out consistent so we need to get the keys and print them in order
+	var keys []string
+	for k := range taliasData {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	fmt.Println("Registered Commands =======================================")
-	for _, talias := range taliasData {
+	for _, k := range keys {
+		talias := taliasData[k]
 		fmt.Println("alias:", talias.Alias, "\n",
 			"command: ", talias.Command, "\n",
 			"expired: ", talias.InitializationDate.After(talias.ExpirationDate), "\n",
