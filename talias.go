@@ -31,6 +31,17 @@ type TaliasCmd struct {
 	Active			   bool
 }
 
+type TaliasCmdMap map[string]TaliasCmd
+
+func (t TaliasCmdMap) updateAllStatus() TaliasCmdMap {
+	taliasCmdMap := make(TaliasCmdMap)
+	for k, v := range t {
+		v.Active = isAliasActive(v.Alias)
+		taliasCmdMap[k] = v
+	}
+	return taliasCmdMap
+}
+
 // Struct to hold app context
 type TaliasContext struct {
 	listHistory         bool
@@ -110,6 +121,15 @@ func isTimeStamp(line string) int64 {
 	return -1
 }
 
+// Check if an alias in the db currently has a script in place
+func isAliasActive(alias string) bool {
+	fullPath := filepath.Join(ctx.aliasDir, alias)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 // Build the array of all the available shell history
 func buildCmdHistory(history []string) []CmdInfo {
 	var cmdInfo []CmdInfo
@@ -142,8 +162,8 @@ func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
 }
 
 // Load Json Metadata
-func loadDataFile() map[string]TaliasCmd {
-	taliasCmdMap := make(map[string]TaliasCmd)
+func loadDataFile() TaliasCmdMap {
+	taliasCmdMap := make(TaliasCmdMap)
 	raw, err := ioutil.ReadFile(ctx.dataFile)
 	if ! os.IsNotExist(err) {
 		check(err)
@@ -154,7 +174,7 @@ func loadDataFile() map[string]TaliasCmd {
 }
 
 // Write Json Metadata
-func writeDataFile(taliasData map[string]TaliasCmd) bool {
+func writeDataFile(taliasData *TaliasCmdMap) bool {
 	taliasJson, err := json.Marshal(taliasData)
 	check(err)
 	err = ioutil.WriteFile(ctx.dataFile, taliasJson, 0644)
@@ -206,7 +226,7 @@ func mkDir(dir string) {
 }
 
 // List Talias metadata
-func listTaliasData(taliasData *map[string]TaliasCmd) {
+func listTaliasData(taliasData *TaliasCmdMap) {
 	fmt.Println("Registered Commands =======================================")
 	for _, talias := range *taliasData {
 		fmt.Println("alias:", talias.Alias, "\n",
@@ -221,7 +241,7 @@ func main() {
 	// Remember ctx is global
 	ctx = initTaliasContext()
 
-	taliasData := loadDataFile()
+	taliasData := loadDataFile().updateAllStatus()
 
 	mkDir(ctx.taliasHome)
 	mkDir(ctx.aliasDir)
@@ -252,7 +272,9 @@ func main() {
 			time.Now().Add(time.Hour * 72),
 			true}
 		taliasData[ctx.addAliasName] = newAlias
-		writeDataFile(taliasData)
+		writeDataFile(&taliasData)
 		fmt.Println(cmdHistoryMap[cmdNum].command + " aliased as " + ctx.addAliasName)
 	}
+
+	writeDataFile(&taliasData)
 }
