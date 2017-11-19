@@ -169,9 +169,12 @@ func loadHistoryDataMap() ShellCmdMap {
 
 // List last N shell commands from history
 func (m ShellCmdMap) listHistory(page int) {
-	for i := len(m) + 1 - ctx.ListHistoryNumber ; i <= len(m) ; i++ {
-		fmt.Println(m[i].commandNumber, time.Unix(m[i].timestamp, 0), m[i].command)
+	for i := len(m) + 1 - (ctx.ListHistoryNumber * page);
+		i <= len(m) - (ctx.ListHistoryNumber * (page - 1));
+		i++ {
+			fmt.Println(m[i].commandNumber, " | ", m[i].command)
 	}
+	// currently not printing time.Unix(m[i].timestamp, 0) but may use later
 }
 
 // Load Json Metadata
@@ -205,10 +208,15 @@ func writeConfFile(taliasConf *TaliasContext) bool {
 // Read user input of command number to create alias
 func readInput() int {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter command number: ")
+	fmt.Print("Enter command number (or 'p' for previous ", ctx.ListHistoryNumber, ") : ")
 	text, _ := reader.ReadString('\n')
+	if text[:len(text)-1] == "p" {
+		return -1
+	}
 	cmdNum, err := strconv.Atoi(text[:len(text)-1])
-	check(err)
+	if err != nil {
+		return -2
+	}
 	return cmdNum
 }
 
@@ -231,10 +239,22 @@ func addAliasScript(info CmdInfo, alias string) bool {
 	return true
 }
 
-// Adds an alias to the database and creates it's script
+// Adds an alias to the database and creates its script
 func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
-	cmdMap.listHistory(1)
-	cmdNum := readInput()
+	cmdNum, page := -1, 0
+	for {
+		if cmdNum == -1 {
+			page = page + 1
+			cmdMap.listHistory(page)
+			cmdNum = readInput()
+		} else if cmdNum > len(cmdMap) || cmdNum < -1 {
+			fmt.Println("ERROR: Please select a number below ", len(cmdMap) +1, " or Ctrl-c" )
+			cmdMap.listHistory(page)
+			cmdNum = readInput()
+		} else {
+			break
+		}
+	}
 	addAliasScript(cmdMap[cmdNum], ctx.addAliasName)
 	newAlias := TaliasCmd{cmdMap[cmdNum].command,
 		ctx.addAliasName,
@@ -280,7 +300,7 @@ func (taliasData TaliasCmdMap) listTaliasData() {
 		talias := taliasData[k]
 		fmt.Println("alias:", talias.Alias, "\n",
 			"command: ", talias.Command, "\n",
-			"expired: ", talias.InitializationDate.After(talias.ExpirationDate), "\n",
+			"expired: ", talias.ExpirationDate.Before(time.Now()), "\n",
 			"active: ", talias.Active, "\n",
 			"==========================================================")
 	}
