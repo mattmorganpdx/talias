@@ -147,37 +147,7 @@ func isAliasActive(alias string) bool {
 	return true
 }
 
-// Build the array of all the available shell history
-func buildCmdHistory(history []string) []CmdInfo {
-	var cmdInfo []CmdInfo
-	// Initialize the timestamp var so we can reset it as we find it in the array
-	var currentTimestamp int64
-	currentTimestamp = 0
-	for i := 0; i < len(history); i++ {
-		line := history[i]
-		commentCheck := isTimeStamp(line)
-		if commentCheck >= 0 {
-			currentTimestamp = commentCheck
-		} else {
-			lineCmd := CmdInfo{line,
-				len(cmdInfo) + 1,
-				currentTimestamp}
-			cmdInfo = append(cmdInfo, lineCmd)
-		}
-	}
-
-	return cmdInfo
-}
-
-// Build a map so that commands can be referenced by id number
-func buildCmdHistoryMap(cmdInfo []CmdInfo) map[int]CmdInfo {
-	cmdMap := make(map[int]CmdInfo)
-	for i, cmd := range cmdInfo {
-		cmdMap[i+1] = cmd
-	}
-	return cmdMap
-}
-
+// Load shell history from file
 func loadHistoryDataMap() ShellCmdMap {
 	shellCmdMap := make(ShellCmdMap)
 	historyLines := readLines(ctx.HistFile)
@@ -188,12 +158,20 @@ func loadHistoryDataMap() ShellCmdMap {
 			currentTimeStamp = commentCheck
 		} else {
 			mapIndex := len(shellCmdMap) + 1
-			shellCmdMap[mapIndex] = CmdInfo{line,
+			shellCmdMap[mapIndex] = CmdInfo{
+				line,
 				mapIndex,
 				currentTimeStamp}
 		}
 	}
 	return shellCmdMap
+}
+
+// List last N shell commands from history
+func (m ShellCmdMap) listHistory(page int) {
+	for i := len(m) + 1 - ctx.ListHistoryNumber ; i <= len(m) ; i++ {
+		fmt.Println(m[i].commandNumber, time.Unix(m[i].timestamp, 0), m[i].command)
+	}
 }
 
 // Load Json Metadata
@@ -259,13 +237,6 @@ func deactivateAlias(alias string) {
 	check(err)
 }
 
-// List last N shell commands from history
-func listHistory(cmdHistoryLength int, cmdHistory []CmdInfo, cmdCount int) {
-	for i := cmdHistoryLength - cmdCount; i < cmdHistoryLength; i++ {
-		fmt.Println(cmdHistory[i].commandNumber, time.Unix(cmdHistory[i].timestamp, 0), cmdHistory[i].command)
-	}
-}
-
 // Make a directory if it doesn't already exist
 func mkDir(dir string) {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -302,15 +273,11 @@ func main() {
 	mkDir(ctx.TaliasHome)
 	mkDir(ctx.AliasDir)
 
-	lines := readLines(ctx.HistFile)
-
-	cmdHistory := buildCmdHistory(lines)
-	cmdHistoryLength := len(cmdHistory)
-	cmdHistoryMap := buildCmdHistoryMap(cmdHistory)
+	cmdMap := loadHistoryDataMap()
 
 	// Print the last N commands
 	if ctx.listHistory {
-		listHistory(cmdHistoryLength, cmdHistory, ctx.ListHistoryNumber)
+		cmdMap.listHistory(1)
 	}
 
 	if ctx.listTaliasData {
@@ -318,17 +285,17 @@ func main() {
 	}
 
 	if ctx.addAlias {
-		listHistory(cmdHistoryLength, cmdHistory, ctx.ListHistoryNumber)
+		cmdMap.listHistory(1)
 		cmdNum := readInput()
-		addAlias(cmdHistoryMap[cmdNum], ctx.addAliasName)
-		newAlias := TaliasCmd{cmdHistoryMap[cmdNum].command,
+		addAlias(cmdMap[cmdNum], ctx.addAliasName)
+		newAlias := TaliasCmd{cmdMap[cmdNum].command,
 			ctx.addAliasName,
 			time.Now(),
 			time.Now().Add(time.Hour * ctx.Expiration),
 			true}
 		taliasData[ctx.addAliasName] = newAlias
 		writeDataFile(&taliasData)
-		fmt.Println(cmdHistoryMap[cmdNum].command + " aliased as " + ctx.addAliasName)
+		fmt.Println(cmdMap[cmdNum].command + " aliased as " + ctx.addAliasName)
 	}
 
 	if ctx.delAlias {
@@ -336,11 +303,6 @@ func main() {
 			deactivateAlias(ctx.delAliasName)
 		}
 		delete(taliasData, ctx.delAliasName)
-	}
-
-	cmdMap := loadHistoryDataMap()
-	for i := len(cmdMap) - 10 ; i <= len(cmdMap) ; i++ {
-		fmt.Println(cmdMap[i].commandNumber, time.Unix(cmdMap[i].timestamp, 0), cmdMap[i].command)
 	}
 
 	writeDataFile(&taliasData)
