@@ -187,12 +187,11 @@ func loadDataFile() TaliasCmdMap {
 }
 
 // Write Json Metadata
-func writeDataFile(taliasData *TaliasCmdMap) bool {
+func (taliasData TaliasCmdMap) writeDataFile() {
 	taliasJson, err := json.Marshal(taliasData)
 	check(err)
 	err = ioutil.WriteFile(ctx.DataFile, taliasJson, 0644)
 	check(err)
-	return true
 }
 
 func writeConfFile(taliasConf *TaliasContext) bool {
@@ -214,7 +213,7 @@ func readInput() int {
 }
 
 // Add alias script
-func addAlias(info CmdInfo, alias string) bool {
+func addAliasScript(info CmdInfo, alias string) bool {
 	aliasFile := filepath.Join(ctx.AliasDir, alias)
 	f, err := os.Create(aliasFile)
 	check(err)
@@ -232,9 +231,32 @@ func addAlias(info CmdInfo, alias string) bool {
 	return true
 }
 
+// Adds an alias to the database and creates it's script
+func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
+	cmdMap.listHistory(1)
+	cmdNum := readInput()
+	addAliasScript(cmdMap[cmdNum], ctx.addAliasName)
+	newAlias := TaliasCmd{cmdMap[cmdNum].command,
+		ctx.addAliasName,
+		time.Now(),
+		time.Now().Add(time.Hour * ctx.Expiration),
+		true}
+	taliasData[ctx.addAliasName] = newAlias
+	taliasData.writeDataFile()
+	fmt.Println(cmdMap[cmdNum].command + " aliased as " + ctx.addAliasName)
+}
+
 func deactivateAlias(alias string) {
 	err := os.Remove(filepath.Join(ctx.AliasDir, alias))
 	check(err)
+}
+
+func delAlias(taliasData TaliasCmdMap) {
+	if isAliasActive(ctx.delAliasName) {
+		deactivateAlias(ctx.delAliasName)
+	}
+	delete(taliasData, ctx.delAliasName)
+	taliasData.writeDataFile()
 }
 
 // Make a directory if it doesn't already exist
@@ -267,15 +289,14 @@ func (taliasData TaliasCmdMap) listTaliasData() {
 func main() {
 	// Remember ctx is global
 	ctx = initTaliasContext()
-
-	taliasData := loadDataFile().updateAllStatus()
+	writeConfFile(&ctx)
 
 	mkDir(ctx.TaliasHome)
 	mkDir(ctx.AliasDir)
 
+	taliasData := loadDataFile().updateAllStatus()
 	cmdMap := loadHistoryDataMap()
 
-	// Print the last N commands
 	if ctx.listHistory {
 		cmdMap.listHistory(1)
 	}
@@ -285,26 +306,13 @@ func main() {
 	}
 
 	if ctx.addAlias {
-		cmdMap.listHistory(1)
-		cmdNum := readInput()
-		addAlias(cmdMap[cmdNum], ctx.addAliasName)
-		newAlias := TaliasCmd{cmdMap[cmdNum].command,
-			ctx.addAliasName,
-			time.Now(),
-			time.Now().Add(time.Hour * ctx.Expiration),
-			true}
-		taliasData[ctx.addAliasName] = newAlias
-		writeDataFile(&taliasData)
-		fmt.Println(cmdMap[cmdNum].command + " aliased as " + ctx.addAliasName)
+		addAlias(cmdMap, taliasData)
+		os.Exit(0)
 	}
 
 	if ctx.delAlias {
-		if isAliasActive(ctx.delAliasName) {
-			deactivateAlias(ctx.delAliasName)
-		}
-		delete(taliasData, ctx.delAliasName)
+		delAlias(taliasData)
+		os.Exit(0)
 	}
 
-	writeDataFile(&taliasData)
-	writeConfFile(&ctx)
 }
