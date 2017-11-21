@@ -242,7 +242,7 @@ func addAliasScript(info CmdInfo, alias string) bool {
 
 	f.WriteString("#!/bin/bash\n")
 	f.WriteString("set -e\n")
-	f.WriteString(info.command + " $*" + "\n")
+	f.WriteString(info.command + " \"$@\"" + "\n")
 
 	f.Sync()
 
