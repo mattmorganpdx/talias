@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"sort"
+	"strings"
 )
 
 // Global app context variable
@@ -106,6 +107,17 @@ func check(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+// Check if talias in is in path
+func checkPath() {
+	for _, dir := range strings.Split(os.Getenv("PATH"),":") {
+		if dir == ctx.AliasDir {
+			return
+		}
+	}
+
+	fmt.Println("Warning:", ctx.AliasDir, "is not in your path")
 }
 
 // This just returns the whole contents of a file as a string array
@@ -310,6 +322,8 @@ func main() {
 	// Remember ctx is global
 	ctx = initTaliasContext()
 	writeConfFile(&ctx)
+
+	checkPath()
 
 	mkDir(ctx.TaliasHome)
 	mkDir(ctx.AliasDir)
