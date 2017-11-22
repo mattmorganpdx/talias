@@ -332,14 +332,16 @@ func (taliasData TaliasCmdMap) listTaliasData() {
 func main() {
 	// Remember ctx is global
 	ctx = initTaliasContext()
-	writeConfFile(&ctx)
 
 	checkPath()
 
 	mkDir(ctx.TaliasHome)
 	mkDir(ctx.AliasDir)
 
+	writeConfFile(&ctx)
+
 	taliasData := loadDataFile().updateAllStatus()
+
 	cmdMap := loadHistoryDataMap()
 
 	if ctx.listHistory {
