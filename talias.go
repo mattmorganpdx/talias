@@ -40,10 +40,21 @@ type TaliasCmdMap map[string]TaliasCmd
 func (t TaliasCmdMap) updateAllStatus() TaliasCmdMap {
 	taliasCmdMap := make(TaliasCmdMap)
 	for k, v := range t {
+		v.expire()
 		v.Active = isAliasActive(v.Alias)
 		taliasCmdMap[k] = v
 	}
 	return taliasCmdMap
+}
+
+func (t *TaliasCmd) expire() {
+	if t.ExpirationDate.Before(time.Now()) && isAliasActive(t.Alias) {
+		deactivateAlias(t.Alias)
+	}
+}
+
+func (t *TaliasCmd) extend() {
+	//
 }
 
 // Struct to hold app context
