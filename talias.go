@@ -91,7 +91,7 @@ func initTaliasContext() TaliasContext {
 	taliasBin  := filepath.Join(taliasHome, "bin")
 	taliasConf := filepath.Join(taliasHome, "talias.conf")
 	taliasDb   := filepath.Join(taliasHome, "talias.db")
-	taliasExp  := time.Duration(72)
+	taliasExp  := time.Duration(72) * time.Hour
 	taliasLst  := 10
 
 	appContext := TaliasContext{
@@ -257,7 +257,7 @@ func writeConfFile(taliasConf *TaliasContext) bool {
 }
 
 // Read user input of command number to create alias
-func readInput() int {
+func readInputForAdd() int {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter command number (or 'p' for previous ", ctx.ListHistoryNumber, ") : ")
 	text, _ := reader.ReadString('\n')
@@ -269,6 +269,17 @@ func readInput() int {
 		return -2
 	}
 	return cmdNum
+}
+
+func readInputForExtend() string {
+	reader := bufio.NewReader(os.Stdin)
+	text, _ := reader.ReadString('\n')
+	input := text[:len(text)-1]
+	if input == "e" || input == "o" {
+		return input
+	} else {
+		return ""
+	}
 }
 
 // Add alias script
@@ -292,16 +303,42 @@ func addAliasScript(info CmdInfo, alias string) bool {
 
 // Adds an alias to the database and creates its script
 func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
+	existingTalias := taliasData[ctx.addAliasName]
+	if existingTalias.Alias != "" {
+		fmt.Println(ctx.addAliasName, "exists. Extend for", ctx.Expiration,
+			"or overwrite (e/o)")
+
+		for {
+			choice := readInputForExtend()
+			if choice == "e" {
+				cmd := CmdInfo{
+					existingTalias.Command,
+					0,
+					0}
+				addAliasScript(cmd, ctx.addAliasName)
+				existingTalias.ExpirationDate = time.Now().Add(ctx.Expiration)
+				taliasData[ctx.addAliasName] = existingTalias
+				taliasData.writeDataFile()
+				fmt.Println("Extended ", ctx.addAliasName)
+				return
+			} else if choice == "o" {
+				break
+			} else {
+				fmt.Println("e to extend, o to overwrite or Ctrl-c to abort")
+			}
+		}
+	}
+
 	cmdNum, page := -1, 0
 	for {
 		if cmdNum == -1 {
 			page = page + 1
 			cmdMap.listHistory(page)
-			cmdNum = readInput()
+			cmdNum = readInputForAdd()
 		} else if cmdNum > len(cmdMap) || cmdNum < -1 {
 			fmt.Println("ERROR: Please select a number below ", len(cmdMap) +1, " or Ctrl-c" )
 			cmdMap.listHistory(page)
-			cmdNum = readInput()
+			cmdNum = readInputForAdd()
 		} else {
 			break
 		}
@@ -310,7 +347,7 @@ func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
 	newAlias := TaliasCmd{cmdMap[cmdNum].command,
 		ctx.addAliasName,
 		time.Now(),
-		time.Now().Add(time.Hour * ctx.Expiration),
+		time.Now().Add(ctx.Expiration),
 		true}
 	taliasData[ctx.addAliasName] = newAlias
 	taliasData.writeDataFile()
