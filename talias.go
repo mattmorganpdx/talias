@@ -79,20 +79,35 @@ type TaliasContext struct {
 // Initialize app context
 func initTaliasContext() TaliasContext {
 	userHome := os.Getenv("HOME")
+	altHome := os.Getenv("TALIAS_HOME")
+	var rootDir string
+	if altHome == "" {
+		rootDir = userHome
+	} else {
+		rootDir = altHome
+	}
+	histFile   := filepath.Join(rootDir, ".bash_history")
+	taliasHome := filepath.Join(rootDir, ".talias")
+	taliasBin  := filepath.Join(taliasHome, "bin")
+	taliasConf := filepath.Join(taliasHome, "talias.conf")
+	taliasDb   := filepath.Join(taliasHome, "talias.db")
+	taliasExp  := time.Duration(72)
+	taliasLst  := 10
+
 	appContext := TaliasContext{
 		true,
-		10,
+		taliasLst,
 		false,
 		"",
 		false,
 		false,
-		filepath.Join(userHome, ".bash_history"),
-		filepath.Join(userHome, ".talias"),
-		filepath.Join(userHome, ".talias", "bin"),
-		filepath.Join(userHome, ".talias", "talias.db"),
+		histFile,
+		taliasHome,
+		taliasBin,
+		taliasDb,
 		false,
-		72,
-		filepath.Join(userHome, ".talias", "talias.conf"),
+		taliasExp,
+		taliasConf,
 		false,
 		""}
 
@@ -200,6 +215,17 @@ func (m ShellCmdMap) listHistory(page int) {
 	// currently not printing time.Unix(m[i].timestamp, 0) but may use later
 }
 
+func loadUserContext(filename string) TaliasContext{
+	uCtx :=  TaliasContext{}
+	raw, err := ioutil.ReadFile(filename)
+	if ! os.IsNotExist(err) {
+		check(err)
+	}
+
+	err = json.Unmarshal(raw, &uCtx)
+	return uCtx
+}
+
 // Load Json Metadata
 func loadDataFile() TaliasCmdMap {
 	taliasCmdMap := make(TaliasCmdMap)
@@ -214,14 +240,16 @@ func loadDataFile() TaliasCmdMap {
 
 // Write Json Metadata
 func (taliasData TaliasCmdMap) writeDataFile() {
-	taliasJson, err := json.Marshal(taliasData)
+	taliasJson, err := json.MarshalIndent(taliasData, "", "    ")
+	taliasJson = append(taliasJson, "\n"...)
 	check(err)
 	err = ioutil.WriteFile(ctx.DataFile, taliasJson, 0644)
 	check(err)
 }
 
 func writeConfFile(taliasConf *TaliasContext) bool {
-	taliasJson, err := json.Marshal(taliasConf)
+	taliasJson, err := json.MarshalIndent(taliasConf, "", "    ")
+	taliasJson = append(taliasJson, "\n"...)
 	check(err)
 	err = ioutil.WriteFile(ctx.configFile, taliasJson, 0644)
 	check(err)
