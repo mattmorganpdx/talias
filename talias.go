@@ -111,15 +111,14 @@ func initTaliasContext() TaliasContext {
 		false,
 		""}
 
-	showHelp := false
-	flag.BoolVar(&showHelp, "h", false, "list history")
+	// Override flags default usage, which looks pretty jank
+	flag.Usage = printHelp
 	flag.BoolVar(&appContext.listHistory, "l", false, "list history")
 	flag.BoolVar(&appContext.listTaliasData, "L", false, "list aliases")
 	flag.StringVar(&appContext.addAliasName, "a", "REQUIRED", "add alias <name>")
 	flag.StringVar(&appContext.delAliasName, "d", "REQUIRED", "delete alias <name>")
 	flag.Parse()
-
-	if showHelp { printHelp() }
+	
 	if appContext.addAliasName != "REQUIRED" {
 		appContext.addAlias = true
 	}
