@@ -423,6 +423,7 @@ func main() {
 
 	if ctx.listTaliasData {
 		taliasData.listTaliasData()
+		os.Exit(0)
 	}
 
 	if ctx.addAlias {
