@@ -59,7 +59,6 @@ func (t *TaliasCmd) extend() {
 
 // Struct to hold app context
 type TaliasContext struct {
-	listHistory         bool
 	ListHistoryNumber   int
 	addAlias            bool
 	addAliasName        string
@@ -95,7 +94,6 @@ func initTaliasContext() TaliasContext {
 	taliasLst  := 10
 
 	appContext := TaliasContext{
-		true,
 		taliasLst,
 		false,
 		"",
@@ -113,12 +111,11 @@ func initTaliasContext() TaliasContext {
 
 	// Override flags default usage, which looks pretty jank
 	flag.Usage = printHelp
-	flag.BoolVar(&appContext.listHistory, "l", false, "list history")
-	flag.BoolVar(&appContext.listTaliasData, "L", false, "list aliases")
+	flag.BoolVar(&appContext.listTaliasData, "l", false, "list aliases")
 	flag.StringVar(&appContext.addAliasName, "a", "REQUIRED", "add alias <name>")
 	flag.StringVar(&appContext.delAliasName, "d", "REQUIRED", "delete alias <name>")
 	flag.Parse()
-	
+
 	if appContext.addAliasName != "REQUIRED" {
 		appContext.addAlias = true
 	}
@@ -421,10 +418,6 @@ func main() {
 
 	cmdMap := loadHistoryDataMap()
 
-	if ctx.listHistory {
-		cmdMap.listHistory(1)
-	}
-
 	if ctx.listTaliasData {
 		taliasData.listTaliasData()
 	}
@@ -438,6 +431,4 @@ func main() {
 		delAlias(taliasData)
 		os.Exit(0)
 	}
-
-	//printHelp()
 }
