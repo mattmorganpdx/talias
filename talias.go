@@ -53,10 +53,6 @@ func (t *TaliasCmd) expire() {
 	}
 }
 
-func (t *TaliasCmd) extend() {
-	//
-}
-
 // Struct to hold app context
 type TaliasContext struct {
 	ListHistoryNumber   int
@@ -395,10 +391,17 @@ func (taliasData TaliasCmdMap) listTaliasData() {
 	fmt.Println("Registered Commands =======================================")
 	for _, k := range keys {
 		talias := taliasData[k]
+		var expiresIn string
+		expiresDiff := talias.ExpirationDate.Sub(time.Now()).Round(time.Minute)
+		if expiresDiff.Hours() < 0 || expiresDiff.Minutes() < 0 || expiresDiff.Seconds() < 0 {
+			expiresIn = "expired"
+		} else {
+			expiresIn = fmt.Sprint(expiresDiff)
+			expiresIn = expiresIn[:len(expiresIn)-2]
+		}
 		fmt.Println("alias:", talias.Alias, "\n",
 			"command: ", talias.Command, "\n",
-			"expired: ", talias.ExpirationDate.Before(time.Now()), "\n",
-			"active: ", talias.Active, "\n",
+			"active: ", talias.Active, "/ expires in: ", expiresIn, "\n",
 			"==========================================================")
 	}
 }
