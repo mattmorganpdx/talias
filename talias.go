@@ -111,12 +111,15 @@ func initTaliasContext() TaliasContext {
 		false,
 		""}
 
+	showHelp := false
+	flag.BoolVar(&showHelp, "h", false, "list history")
 	flag.BoolVar(&appContext.listHistory, "l", false, "list history")
 	flag.BoolVar(&appContext.listTaliasData, "L", false, "list aliases")
 	flag.StringVar(&appContext.addAliasName, "a", "REQUIRED", "add alias <name>")
 	flag.StringVar(&appContext.delAliasName, "d", "REQUIRED", "delete alias <name>")
 	flag.Parse()
 
+	if showHelp { printHelp() }
 	if appContext.addAliasName != "REQUIRED" {
 		appContext.addAlias = true
 	}
@@ -126,6 +129,16 @@ func initTaliasContext() TaliasContext {
 	}
 
 	return appContext
+}
+
+func printHelp() {
+	fmt.Println("Usage: talias [OPTION]... [ALIAS]", "\n",
+					"\t", "-l", "\t", "list aliases", "\n",
+					"\t", "-a", "\t", "add or extend an alias", "\n",
+					"\t", "-d", "\t", "delete an alias", "\n",
+					"\t", "-p",	"\t", "purge expired aliases", "\n",
+					"\t", "-h", "\t", "print usage message",
+				)
 }
 
 // The worlds most generic error handler ... but it gets the job done.
@@ -427,4 +440,5 @@ func main() {
 		os.Exit(0)
 	}
 
+	//printHelp()
 }
