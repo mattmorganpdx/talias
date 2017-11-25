@@ -397,11 +397,11 @@ func (taliasData TaliasCmdMap) listTaliasData() {
 			expiresIn = "expired"
 		} else {
 			expiresIn = fmt.Sprint(expiresDiff)
-			expiresIn = expiresIn[:len(expiresIn)-2]
+			expiresIn = "expires in: " + expiresIn[:len(expiresIn)-2]
 		}
 		fmt.Println("alias:", talias.Alias, "\n",
-			"command: ", talias.Command, "\n",
-			"active: ", talias.Active, "/ expires in: ", expiresIn, "\n",
+			"command:", talias.Command, "\n",
+			"active:", talias.Active, "/", expiresIn, "\n",
 			"==========================================================")
 	}
 }
