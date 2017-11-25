@@ -128,7 +128,7 @@ func printHelp() {
 					"\t", "-l", "\t", "list aliases", "\n",
 					"\t", "-a", "\t", "add or extend an alias", "\n",
 					"\t", "-d", "\t", "delete an alias", "\n",
-					"\t", "-p",	"\t", "purge expired aliases", "\n",
+					//"\t", "-p",	"\t", "purge expired aliases", "\n",
 					"\t", "-h", "\t", "print usage message",
 				)
 }
