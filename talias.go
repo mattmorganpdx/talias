@@ -40,7 +40,9 @@ type TaliasCmdMap map[string]TaliasCmd
 func (t TaliasCmdMap) updateAllStatus() TaliasCmdMap {
 	taliasCmdMap := make(TaliasCmdMap)
 	for k, v := range t {
-		v.expire()
+		if ctx.AutoExpireAliases {
+			v.expire()
+		}
 		v.Active = isAliasActive(v.Alias)
 		taliasCmdMap[k] = v
 	}
@@ -55,20 +57,21 @@ func (t *TaliasCmd) expire() {
 
 // Struct to hold app context
 type TaliasContext struct {
-	ListHistoryNumber   int
-	addAlias            bool
-	addAliasName        string
-	listAliases         bool
-	purgeExpiredAliases bool
-	HistFile            string
-	TaliasHome          string
-	AliasDir            string
-	DataFile            string
-	listTaliasData      bool
-	Expiration          time.Duration
-	configFile			string
-	delAlias			bool
-	delAliasName		string
+	ListHistoryNumber int
+	addAlias          bool
+	addAliasName      string
+	listAliases       bool
+	AutoExpireAliases bool
+	HistFile          string
+	TaliasHome        string
+	AliasDir          string
+	DataFile          string
+	listTaliasData    bool
+	expiration        time.Duration
+	ExpirationHours   int
+	configFile        string
+	delAlias          bool
+	delAliasName      string
 }
 
 // Initialize app context
@@ -86,20 +89,39 @@ func initTaliasContext() TaliasContext {
 	taliasBin  := filepath.Join(taliasHome, "bin")
 	taliasConf := filepath.Join(taliasHome, "talias.conf")
 	taliasDb   := filepath.Join(taliasHome, "talias.db")
-	taliasExp  := time.Duration(72) * time.Hour
+	taliasExp  := 72
 	taliasLst  := 10
+	taliasAue  := true
 
+	// Override context with any user defined config
+	userConfig := loadUserConfig(taliasConf)
+	taliasAue = userConfig.AutoExpireAliases
+	if userConfig.ListHistoryNumber != 0 {
+		taliasLst = userConfig.ListHistoryNumber
+	}
+	if userConfig.HistFile != "" {
+		histFile = userConfig.HistFile
+	}
+	if userConfig.AliasDir != "" {
+		taliasBin = userConfig.AliasDir
+	}
+	if userConfig.ExpirationHours != 0 {
+		taliasExp = userConfig.ExpirationHours
+	}
+
+	// Initialize appContext with defaults and any user overrides
 	appContext := TaliasContext{
 		taliasLst,
 		false,
 		"",
 		false,
-		false,
+		taliasAue,
 		histFile,
 		taliasHome,
 		taliasBin,
 		taliasDb,
 		false,
+		time.Duration(taliasExp) * time.Hour,
 		taliasExp,
 		taliasConf,
 		false,
@@ -220,7 +242,7 @@ func (m ShellCmdMap) listHistory(page int) {
 	// currently not printing time.Unix(m[i].timestamp, 0) but may use later
 }
 
-func loadUserContext(filename string) TaliasContext{
+func loadUserConfig(filename string) TaliasContext{
 	uCtx :=  TaliasContext{}
 	raw, err := ioutil.ReadFile(filename)
 	if ! os.IsNotExist(err) {
@@ -310,7 +332,7 @@ func addAliasScript(info CmdInfo, alias string) bool {
 func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
 	existingTalias := taliasData[ctx.addAliasName]
 	if existingTalias.Alias != "" {
-		fmt.Print(ctx.addAliasName, " exists. Extend for ", ctx.Expiration.Hours(),
+		fmt.Print(ctx.addAliasName, " exists. Extend for ", ctx.expiration.Hours(),
 			" hours or overwrite (e/o) ")
 
 		for {
@@ -321,7 +343,7 @@ func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
 					0,
 					0}
 				addAliasScript(cmd, ctx.addAliasName)
-				existingTalias.ExpirationDate = time.Now().Add(ctx.Expiration)
+				existingTalias.ExpirationDate = time.Now().Add(ctx.expiration)
 				taliasData[ctx.addAliasName] = existingTalias
 				taliasData.writeDataFile()
 				fmt.Println("Extended", ctx.addAliasName)
@@ -352,7 +374,7 @@ func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
 	newAlias := TaliasCmd{cmdMap[cmdNum].command,
 		ctx.addAliasName,
 		time.Now(),
-		time.Now().Add(ctx.Expiration),
+		time.Now().Add(ctx.expiration),
 		true}
 	taliasData[ctx.addAliasName] = newAlias
 	taliasData.writeDataFile()
