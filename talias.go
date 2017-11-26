@@ -310,8 +310,8 @@ func addAliasScript(info CmdInfo, alias string) bool {
 func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
 	existingTalias := taliasData[ctx.addAliasName]
 	if existingTalias.Alias != "" {
-		fmt.Println(ctx.addAliasName, "exists. Extend for", ctx.Expiration,
-			"or overwrite (e/o)")
+		fmt.Print(ctx.addAliasName, " exists. Extend for ", ctx.Expiration.Hours(),
+			" hours or overwrite (e/o) ")
 
 		for {
 			choice := readInputForExtend()
@@ -324,12 +324,12 @@ func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
 				existingTalias.ExpirationDate = time.Now().Add(ctx.Expiration)
 				taliasData[ctx.addAliasName] = existingTalias
 				taliasData.writeDataFile()
-				fmt.Println("Extended ", ctx.addAliasName)
+				fmt.Println("Extended", ctx.addAliasName)
 				return
 			} else if choice == "o" {
 				break
 			} else {
-				fmt.Println("e to extend, o to overwrite or Ctrl-c to abort")
+				fmt.Print("e to extend, o to overwrite or Ctrl-c to abort ")
 			}
 		}
 	}
