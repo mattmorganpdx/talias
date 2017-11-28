@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+var VERSION = "1.0-1"
+
 // Global app context variable
 var ctx TaliasContext
 
@@ -151,7 +153,8 @@ func printHelp() {
 					"\t", "-a", "\t", "add or extend an alias", "\n",
 					"\t", "-d", "\t", "delete an alias", "\n",
 					//"\t", "-p",	"\t", "purge expired aliases", "\n",
-					"\t", "-h", "\t", "print usage message",
+					"\t", "-h", "\t", "print usage message", "\n",
+					"\t", "-v", "\t", "display version string",
 				)
 }
 
