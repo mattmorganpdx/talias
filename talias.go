@@ -74,6 +74,7 @@ type TaliasContext struct {
 	configFile        string
 	delAlias          bool
 	delAliasName      string
+	printVersion	  bool
 }
 
 // Initialize app context
@@ -127,13 +128,15 @@ func initTaliasContext() TaliasContext {
 		taliasExp,
 		taliasConf,
 		false,
-		""}
+		"",
+		false}
 
 	// Override flags default usage, which looks pretty jank
 	flag.Usage = printHelp
 	flag.BoolVar(&appContext.listTaliasData, "l", false, "list aliases")
 	flag.StringVar(&appContext.addAliasName, "a", "REQUIRED", "add alias <name>")
 	flag.StringVar(&appContext.delAliasName, "d", "REQUIRED", "delete alias <name>")
+	flag.BoolVar(&appContext.printVersion, "v", false, "print version")
 	flag.Parse()
 
 	if appContext.addAliasName != "REQUIRED" {
@@ -460,4 +463,11 @@ func main() {
 		delAlias(taliasData)
 		os.Exit(0)
 	}
+
+	if ctx.printVersion {
+		fmt.Println("Version:", VERSION)
+		os.Exit(0)
+	}
+
+	fmt.Println("talias - fast, temporary alias creator. run -h for help")
 }
