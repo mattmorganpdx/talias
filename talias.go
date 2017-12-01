@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"errors"
 	"os"
 	"strconv"
 	"flag"
@@ -336,6 +337,10 @@ func addAliasScript(info CmdInfo, alias string) bool {
 
 // Adds an alias to the database and creates its script
 func addAlias(cmdMap ShellCmdMap, taliasData TaliasCmdMap) {
+	if ctx.addAliasName == ".." || ctx.addAliasName == "." {
+		check(errors.New("Error: Alias can not be named '..' or '.'."))
+	}
+
 	existingTalias := taliasData[ctx.addAliasName]
 	if existingTalias.Alias != "" {
 		fmt.Print(ctx.addAliasName, " exists. Extend for ", ctx.expiration.Hours(),
