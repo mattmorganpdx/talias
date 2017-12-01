@@ -35,6 +35,6 @@ Then resource the file to get started
 > 	 -v 	 display version string
 
 ## Files Locations
-~/.talias/bin/      - home of alias scripts
-~/.talias/alias.db  - json meta data for aliases
-~/.talias/talis/conf - talis config overrides
+- ~/.talias/bin/      - home of alias scripts
+- ~/.talias/alias.db  - json meta data for aliases
+- ~/.talias/talis/conf - talis config overrides
